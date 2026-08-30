@@ -1,5 +1,7 @@
 import os
 import json
+import threading
+from flask import Flask
 from dotenv import load_dotenv
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -18,6 +20,19 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 ADMIN_ID = int(os.getenv("ADMIN_ID", "0"))
 
 ORDERS_FILE = "orders.json"
+# =========================================================
+# RENDER WEB SERVER
+# =========================================================
+
+web_app = Flask(__name__)
+
+@web_app.route("/")
+def home():
+    return "FSH SHOP Bot is running!"
+
+def run_web_server():
+    port = int(os.environ.get("PORT", 10000))
+    web_app.run(host="0.0.0.0", port=port)
 
 
 # =========================================================
@@ -1208,6 +1223,10 @@ def main():
     )
 
     print("FSH SHOP Bot চালু হয়েছে...")
+threading.Thread(
+    target=run_web_server,
+    daemon=True
+).start()
 
     app.run_polling()
 
