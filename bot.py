@@ -1228,7 +1228,7 @@ threading.Thread(
     daemon=True
 ).start()
 
-    app.run_polling()
+app.run_polling()
 
 
 if __name__ == "__main__":
