@@ -20,6 +20,50 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 ADMIN_ID = int(os.getenv("ADMIN_ID", "0"))
 
 ORDERS_FILE = "orders.json"
+
+# =========================================================
+# PRODUCT INVENTORY
+# =========================================================
+
+INVENTORY_FILE = "inventory.json"
+
+
+def load_inventory():
+    if not os.path.exists(INVENTORY_FILE):
+        return {}
+
+    try:
+        with open(INVENTORY_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def save_inventory(inventory):
+    with open(INVENTORY_FILE, "w", encoding="utf-8") as f:
+        json.dump(
+            inventory,
+            f,
+            ensure_ascii=False,
+            indent=2
+        )
+
+
+def get_product_delivery(product_key):
+    inventory = load_inventory()
+
+    items = inventory.get(product_key, [])
+
+    if not items:
+        return None
+
+    delivery = items.pop(0)
+
+    inventory[product_key] = items
+
+    save_inventory(inventory)
+
+    return delivery
 # =========================================================
 # RENDER WEB SERVER
 # =========================================================
@@ -674,6 +718,7 @@ async def receive_transaction(update, context):
 async def approve_order(query, context, order_id):
 
     if query.from_user.id != ADMIN_ID:
+        
 
         await query.answer(
             "❌ আপনি Admin নন।",
