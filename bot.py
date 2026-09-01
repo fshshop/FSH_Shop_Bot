@@ -1223,12 +1223,13 @@ def main():
     )
 
     print("FSH SHOP Bot চালু হয়েছে...")
-threading.Thread(
-    target=run_web_server,
-    daemon=True
-).start()
 
-app.run_polling()
+    threading.Thread(
+        target=run_web_server,
+        daemon=True
+    ).start()
+
+    app.run_polling()
 
 
 if __name__ == "__main__":
