@@ -1231,6 +1231,26 @@ async def callback_handler(update, context):
 # MAIN
 # =========================================================
 
+# =========================================================
+# MAIN
+# =========================================================
+
+async def post_init(application):
+    print("Telegram Bot initialize হচ্ছে...")
+
+    await application.bot.delete_webhook(
+        drop_pending_updates=True
+    )
+
+    print("Telegram webhook successfully removed.")
+    print("Telegram polling শুরু হচ্ছে...")
+
+
+async def error_handler(update, context):
+
+    print("BOT ERROR:", context.error)
+
+
 def main():
 
     if not BOT_TOKEN:
@@ -1243,9 +1263,12 @@ def main():
             "ADMIN_ID পাওয়া যায়নি। .env ফাইল চেক করুন।"
         )
 
-    app = Application.builder().token(
-        BOT_TOKEN
-    ).build()
+    app = (
+        Application.builder()
+        .token(BOT_TOKEN)
+        .post_init(post_init)
+        .build()
+    )
 
     app.add_handler(
         CommandHandler(
@@ -1266,6 +1289,8 @@ def main():
             text_handler
         )
     )
+
+    app.add_error_handler(error_handler)
 
     print("FSH SHOP Bot চালু হয়েছে...")
 
