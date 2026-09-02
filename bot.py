@@ -801,506 +801,71 @@ async def approve_order(query, context, order_id):
             "Customer-এর Facebook Link/ID চাওয়া হয়েছে।"
         )
 
+     # -----------------------------------------
+    # AUTOMATIC INVENTORY DELIVERY
     # -----------------------------------------
-    # ADMIN DELIVERY
-    # -----------------------------------------
 
-    elif info_type == "admin_delivery":
+    elif info_type == "inventory":
 
-        context.user_data["delivery_for_order"] = order_id
-
-        await query.edit_message_text(
-            f"✅ Order {order_id} Approved.\n\n"
-            "এখন Customer-কে যে Delivery information "
-            "দিতে চান সেটা একটি message হিসেবে পাঠান।\n\n"
-            "উদাহরণ:\n"
-            "Email: example@gmail.com\n"
-            "Password: example123"
+        delivery = get_product_delivery(
+            order["product_key"]
         )
 
+        # Stock না থাকলে
+        if not delivery:
 
-# =========================================================
-# ADMIN REJECT
-# =========================================================
+            order["status"] = "out_of_stock"
 
-async def reject_order(query, context, order_id):
+            save_orders(orders)
 
-    if query.from_user.id != ADMIN_ID:
-
-        await query.answer(
-            "❌ আপনি Admin নন।",
-            show_alert=True
-        )
-        return
-
-    orders = load_orders()
-
-    if order_id not in orders:
-
-        await query.edit_message_text(
-            "❌ Order পাওয়া যায়নি।"
-        )
-        return
-
-    order = orders[order_id]
-
-    order["status"] = "rejected"
-
-    save_orders(orders)
-
-    try:
-
-        await context.bot.send_message(
-            chat_id=order["user_id"],
-            text=(
-                "❌ আপনার Order Reject করা হয়েছে।\n\n"
-                f"🆔 Order ID: {order_id}\n"
-                f"📦 {order['product']}\n"
-                f"📅 {order['plan']}\n\n"
-                "প্রয়োজনে Support-এর সাথে যোগাযোগ করুন।"
+            await context.bot.send_message(
+                chat_id=order["user_id"],
+                text=(
+                    "⚠️ আপনার Order Approved হয়েছে, "
+                    "কিন্তু এই Product বর্তমানে Out of Stock.\n\n"
+                    f"🆔 Order ID: {order_id}\n"
+                    f"📦 {order['product']}\n"
+                    f"📅 {order['plan']}\n\n"
+                    "দয়া করে Admin-এর সাথে যোগাযোগ করুন।"
+                )
             )
-        )
 
-    except Exception as e:
-
-        print("CUSTOMER REJECT MESSAGE ERROR:", e)
-
-    await query.edit_message_text(
-        f"❌ Order {order_id} Rejected."
-    )
-
-
-# =========================================================
-# TEXT MESSAGE HANDLER
-# =========================================================
-
-async def text_handler(update, context):
-
-    text = update.message.text.strip()
-    user_id = update.effective_user.id
-
-    # =====================================================
-    # ADMIN DELIVERY
-    # =====================================================
-
-    if user_id == ADMIN_ID:
-
-        delivery_order_id = context.user_data.get(
-            "delivery_for_order"
-        )
-
-        if delivery_order_id:
-
-            orders = load_orders()
-
-            if delivery_order_id not in orders:
-                context.user_data.clear()
-                return
-
-            order = orders[delivery_order_id]
-
-            try:
-
-                await context.bot.send_message(
-                    chat_id=order["user_id"],
-                    text=(
-                        "📦 Order Delivery\n\n"
-                        f"🆔 Order ID: {delivery_order_id}\n\n"
-                        f"{text}\n\n"
-                        "ধন্যবাদ FSH SHOP-এর সাথে থাকার জন্য।"
-                    )
-                )
-
-                order["status"] = "delivered"
-                order["delivery"] = text
-
-                save_orders(orders)
-
-                await update.message.reply_text(
-                    f"✅ Order {delivery_order_id} "
-                    "Customer-এর কাছে Delivery করা হয়েছে।"
-                )
-
-            except Exception as e:
-
-                print("DELIVERY ERROR:", e)
-
-                await update.message.reply_text(
-                    "❌ Delivery পাঠানো যায়নি।"
-                )
-
-            context.user_data.clear()
+            await query.edit_message_text(
+                f"⚠️ Order {order_id} Approved, "
+                "কিন্তু Product Out of Stock."
+            )
 
             return
 
-    # =====================================================
-    # CUSTOMER INFORMATION
-    # =====================================================
+        # Customer-কে Automatic Delivery
+        try:
 
-    info_order_id = context.user_data.get(
-        "collect_info_for"
-    )
-
-    if info_order_id:
-
-        orders = load_orders()
-
-        if info_order_id not in orders:
-
-            context.user_data.clear()
-            return
-
-        order = orders[info_order_id]
-
-        order["customer_info"] = text
-
-        save_orders(orders)
-
-        await context.bot.send_message(
-            chat_id=ADMIN_ID,
-            text=(
-                "📥 Customer Information Received\n\n"
-                f"🆔 Order ID: {info_order_id}\n"
-                f"📦 Product: {order['product']}\n"
-                f"📅 Plan: {order['plan']}\n\n"
-                f"👤 Customer: {order['name']}\n"
-                f"🆔 Telegram ID: {order['user_id']}\n\n"
-                f"📌 Customer Information:\n"
-                f"{text}\n\n"
-                "এখন Delivery সম্পন্ন করুন।"
+            await context.bot.send_message(
+                chat_id=order["user_id"],
+                text=(
+                    "🎉 আপনার Order Successfully Delivered!\n\n"
+                    f"🆔 Order ID: {order_id}\n"
+                    f"📦 Product: {order['product']}\n"
+                    f"📅 Plan: {order['plan']}\n\n"
+                    "🔐 Delivery Information:\n\n"
+                    f"{delivery}\n\n"
+                    "ধন্যবাদ FSH SHOP-এর সাথে থাকার জন্য। ❤️"
+                )
             )
-        )
 
-        await update.message.reply_text(
-            "✅ আপনার তথ্য Admin-এর কাছে পাঠানো হয়েছে।\n\n"
-            "এখন আপনার Order process করা হচ্ছে।"
-        )
+            order["status"] = "delivered"
+            order["delivery"] = delivery
 
-        context.user_data.clear()
+            save_orders(orders)
 
-        return
+            await query.edit_message_text(
+                f"✅ Order {order_id} Approved & Delivered."
+            )
 
-    # =====================================================
-    # TRANSACTION
-    # =====================================================
+        except Exception as e:
 
-    if context.user_data.get("waiting_transaction"):
+            print("AUTO DELIVERY ERROR:", e)
 
-        await receive_transaction(
-            update,
-            context
-        )
-
-
-# =========================================================
-# CALLBACK HANDLER
-# =========================================================
-
-async def callback_handler(update, context):
-
-    query = update.callback_query
-
-    await query.answer()
-
-    data = query.data
-
-    # PRODUCTS
-
-    if data == "products":
-        await show_products(query)
-
-    elif data == "product_capcut":
-        await capcut_plans(query)
-
-    elif data == "product_canva":
-        await canva_plans(query)
-
-    elif data == "product_google":
-        await google_plans(query)
-
-    elif data == "product_virtual":
-        await virtual_plans(query)
-
-    elif data == "product_facebook":
-        await facebook_plans(query)
-
-    # PLANS
-
-    elif data == "plan_capcut_1":
-        await selected_plan(query, context, "capcut_1")
-
-    elif data == "plan_capcut_6":
-        await selected_plan(query, context, "capcut_6")
-
-    elif data == "plan_canva_6":
-        await selected_plan(query, context, "canva_6")
-
-    elif data == "plan_canva_1_no_ai":
-        await selected_plan(query, context, "canva_1_no_ai")
-
-    elif data == "plan_canva_1_ai":
-        await selected_plan(query, context, "canva_1_ai")
-
-    elif data == "plan_google_6":
-        await selected_plan(query, context, "google_6")
-
-    elif data == "plan_google_no_warranty":
-        await selected_plan(
-            query,
-            context,
-            "google_no_warranty"
-        )
-
-    elif data == "plan_virtual_3":
-        await selected_plan(query, context, "virtual_3")
-
-    elif data == "plan_fb_1000":
-        await selected_plan(query, context, "fb_1000")
-
-    # ORDER
-
-    elif data == "start_order":
-        await start_order(query, context)
-
-    # PAYMENT
-
-    elif data == "order_pay_bkash":
-        await order_payment(query, context, "bkash")
-
-    elif data == "order_pay_nagad":
-        await order_payment(query, context, "nagad")
-
-    elif data == "order_pay_rocket":
-        await order_payment(query, context, "rocket")
-
-    elif data == "order_pay_binance":
-        await order_payment(query, context, "binance")
-
-    elif data == "enter_transaction":
-        await ask_transaction(query, context)
-
-    # ADMIN
-
-    elif data.startswith("approve_"):
-
-        order_id = data.replace(
-            "approve_",
-            "",
-            1
-        )
-
-        await approve_order(
-            query,
-            context,
-            order_id
-        )
-
-    elif data.startswith("reject_"):
-
-        order_id = data.replace(
-            "reject_",
-            "",
-            1
-        )
-
-        await reject_order(
-            query,
-            context,
-            order_id
-        )
-
-    # PAYMENT MENU
-
-    elif data == "payment":
-
-        keyboard = [
-            [
-                InlineKeyboardButton(
-                    "💚 বিকাশ",
-                    callback_data="pay_bkash"
-                )
-            ],
-            [
-                InlineKeyboardButton(
-                    "🟠 নগদ",
-                    callback_data="pay_nagad"
-                )
-            ],
-            [
-                InlineKeyboardButton(
-                    "🔴 Rocket",
-                    callback_data="pay_rocket"
-                )
-            ],
-            [
-                InlineKeyboardButton(
-                    "🟡 Binance",
-                    callback_data="pay_binance"
-                )
-            ],
-            [
-                InlineKeyboardButton(
-                    "🏠 মূল মেনু",
-                    callback_data="main_menu"
-                )
-            ],
-        ]
-
-        await query.edit_message_text(
-            "💳 Payment Methods\n\n"
-            "আপনার Payment Method নির্বাচন করুন:",
-            reply_markup=InlineKeyboardMarkup(keyboard)
-        )
-
-    elif data.startswith("pay_"):
-
-        payment_key = data.replace("pay_", "", 1)
-
-        payment = PAYMENTS[payment_key]
-
-        await query.edit_message_text(
-            f"💳 {payment['name']}\n\n"
-            f"Account Type: {payment['type']}\n"
-            f"Number / ID: {payment['number']}",
-            reply_markup=InlineKeyboardMarkup([
-                [
-                    InlineKeyboardButton(
-                        "🔙 Payment Methods",
-                        callback_data="payment"
-                    )
-                ],
-                [
-                    InlineKeyboardButton(
-                        "🏠 মূল মেনু",
-                        callback_data="main_menu"
-                    )
-                ],
-            ])
-        )
-
-    # SUPPORT
-
-    elif data == "support":
-
-        await query.edit_message_text(
-            "📞 Support\n\n"
-            "যেকোনো সমস্যায় Admin-এর সাথে যোগাযোগ করুন।",
-            reply_markup=InlineKeyboardMarkup([
-                [
-                    InlineKeyboardButton(
-                        "🏠 মূল মেনু",
-                        callback_data="main_menu"
-                    )
-                ]
-            ])
-        )
-
-    # MY INFO
-
-    elif data == "my_info":
-
-        user = query.from_user
-
-        await query.edit_message_text(
-            f"👤 আমার তথ্য\n\n"
-            f"নাম: {user.first_name}\n"
-            f"Username: @{user.username if user.username else 'নেই'}\n"
-            f"Telegram ID: {user.id}",
-            reply_markup=InlineKeyboardMarkup([
-                [
-                    InlineKeyboardButton(
-                        "🏠 মূল মেনু",
-                        callback_data="main_menu"
-                    )
-                ]
-            ])
-        )
-
-    # MAIN MENU
-
-    elif data == "main_menu":
-
-        await query.edit_message_text(
-            "🏠 FSH SHOP Main Menu\n\n"
-            "নিচের মেনু থেকে একটি অপশন নির্বাচন করুন:",
-            reply_markup=main_menu()
-        )
-
-
-# =========================================================
-# MAIN
-# =========================================================
-
-# =========================================================
-# MAIN
-# =========================================================
-
-async def post_init(application):
-    print("Telegram Bot initialize হচ্ছে...")
-
-    await application.bot.delete_webhook(
-        drop_pending_updates=True
-    )
-
-    print("Telegram webhook successfully removed.")
-    print("Telegram polling শুরু হচ্ছে...")
-
-
-async def error_handler(update, context):
-
-    print("BOT ERROR:", context.error)
-
-
-def main():
-
-    if not BOT_TOKEN:
-        raise ValueError(
-            "BOT_TOKEN পাওয়া যায়নি। .env ফাইল চেক করুন।"
-        )
-
-    if not ADMIN_ID:
-        raise ValueError(
-            "ADMIN_ID পাওয়া যায়নি। .env ফাইল চেক করুন।"
-        )
-
-    app = (
-        Application.builder()
-        .token(BOT_TOKEN)
-        .post_init(post_init)
-        .build()
-    )
-
-    app.add_handler(
-        CommandHandler(
-            "start",
-            start
-        )
-    )
-
-    app.add_handler(
-        CallbackQueryHandler(
-            callback_handler
-        )
-    )
-
-    app.add_handler(
-        MessageHandler(
-            filters.TEXT & ~filters.COMMAND,
-            text_handler
-        )
-    )
-
-    app.add_error_handler(error_handler)
-
-    print("FSH SHOP Bot চালু হয়েছে...")
-
-    threading.Thread(
-        target=run_web_server,
-        daemon=True
-    ).start()
-
-    app.run_polling()
-
-
-if __name__ == "__main__":
-    main()
+            await query.edit_message_text(
+                f"❌ Order {order_id} Delivery Failed."
+            )
