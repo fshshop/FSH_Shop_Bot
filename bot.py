@@ -88,13 +88,13 @@ PRODUCTS = {
         "product": "🎬 CapCut",
         "plan": "১ মাস",
         "price": "৪০০ টাকা",
-        "info_type": "admin_delivery",
+        "info_type": "inventory",
     },
     "capcut_6": {
         "product": "🎬 CapCut",
         "plan": "৬ মাস",
         "price": "২০৮০ টাকা",
-        "info_type": "admin_delivery",
+        "info_type": "inventory",
     },
 
     "canva_6": {
@@ -113,7 +113,7 @@ PRODUCTS = {
         "product": "🎨 Canva",
         "plan": "১ বছর (AI সহ)",
         "price": "২৮০ টাকা",
-        "info_type": "email",
+        "info_type": "inventory",
     },
 
     "google_6": {
@@ -133,7 +133,7 @@ PRODUCTS = {
         "product": "💳 Virtual Card",
         "plan": "৩ বছর",
         "price": "৯৫০ টাকা",
-        "info_type": "admin_delivery",
+        "info_type": "inventory",
     },
 
     "fb_1000": {
@@ -151,12 +151,12 @@ PRODUCTS = {
 
 PAYMENTS = {
     "bkash": {
-        "name": "বিকাশ",
+        "name": "Bkash",
         "type": "Personal",
         "number": "01985821381",
     },
     "nagad": {
-        "name": "নগদ",
+        "name": "Nagad",
         "type": "Personal",
         "number": "01985821381",
     },
@@ -221,23 +221,23 @@ def main_menu():
     return InlineKeyboardMarkup([
         [
             InlineKeyboardButton(
-                "🛍️ আমাদের প্রোডাক্ট",
+                "🛍️ Prodact",
                 callback_data="products"
             )
         ],
         [
             InlineKeyboardButton(
-                "💳 পেমেন্ট",
+                "💳 Payment",
                 callback_data="payment"
             ),
             InlineKeyboardButton(
-                "📞 সাপোর্ট",
+                "📞 Support",
                 callback_data="support"
             )
         ],
         [
             InlineKeyboardButton(
-                "👤 আমার তথ্য",
+                "👤 My Profile",
                 callback_data="my_info"
             )
         ],
@@ -511,13 +511,13 @@ async def start_order(query, context):
     keyboard = [
         [
             InlineKeyboardButton(
-                "💚 বিকাশ",
+                "💚 Bkash",
                 callback_data="order_pay_bkash"
             )
         ],
         [
             InlineKeyboardButton(
-                "🟠 নগদ",
+                "🟠 Nagad",
                 callback_data="order_pay_nagad"
             )
         ],
